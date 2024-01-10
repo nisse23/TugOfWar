@@ -1,98 +1,67 @@
-import tkinter as tk
-from tkinter import messagebox
+import arcade
 import random
-import pyrow
+
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+ROPE_WIDTH = 20
+PLAYER_SPEED = 5
 
 
-class TugOfWarGame:
-    def __init__(self, master):
-        self.master = master
-        self.master.title("Tug of War Game")
+class TugOfWarGame(arcade.Window):
+    def __init__(self, width, height, title):
+        super().__init__(width, height, title)
 
-        self.player_position = 3
-        self.opponent_position = 3
+        self.player_position = SCREEN_WIDTH // 4
+        self.opponent_position = 3 * SCREEN_WIDTH // 4
 
-        self.canvas = tk.Canvas(self.master, width=300, height=100, bg="white")
-        self.canvas.pack()
+        arcade.set_background_color(arcade.color.WHITE)
 
-        self.display_tug_of_war()
+    def on_draw(self):
+        arcade.start_render()
 
-        self.button_quit = tk.Button(self.master, text="Quit", command=self.quit_game)
-        self.button_quit.pack(side=tk.LEFT, padx=10)
+        # Draw the rope
+        arcade.draw_line(SCREEN_WIDTH // 2 - ROPE_WIDTH // 2, 0,
+                         SCREEN_WIDTH // 2 - ROPE_WIDTH // 2, SCREEN_HEIGHT, arcade.color.BLACK, ROPE_WIDTH)
+        arcade.draw_line(SCREEN_WIDTH // 2 + ROPE_WIDTH // 2, 0,
+                         SCREEN_WIDTH // 2 + ROPE_WIDTH // 2, SCREEN_HEIGHT, arcade.color.BLACK, ROPE_WIDTH)
 
-        # Periodically check whether the canvas should be updated
-        self.master.after(100, self.update_game)
+        # Draw the player
+        arcade.draw_circle_filled(
+            self.player_position, SCREEN_HEIGHT // 2, 20, arcade.color.BLUE)
 
-    def display_tug_of_war(self):
-        if (
-            hasattr(self, "canvas") and self.canvas.winfo_exists()
-        ):  # Check if the canvas still exists
-            self.canvas.delete("all")
-            self.canvas.create_rectangle(0, 0, 300, 100, fill="white")
-            self.canvas.create_text(
-                150,
-                50,
-                text="Opponent [{}-{}-{}-{}-{}-{}] Player".format(
-                    "|" * self.opponent_position,
-                    "<",
-                    ">",
-                    "|" * (5 - self.opponent_position),
-                    "<",
-                    ">",
-                    "|" * self.player_position,
-                ),
-                font=("Arial", 10, "bold"),
-            )
+        # Draw the opponent
+        arcade.draw_circle_filled(
+            self.opponent_position, SCREEN_HEIGHT // 2, 20, arcade.color.RED)
 
-    def tug_left(self):
-        self.player_position -= 1
-        self.opponent_move()
+    def update(self, delta_time):
+        # Update opponent position randomly
+        self.opponent_position += random.choice([-1, 1]) * PLAYER_SPEED
+
+    def on_key_press(self, key, modifiers):
+        # Handle key press events
+        if key == arcade.key.LEFT:
+            self.player_position -= PLAYER_SPEED
+        elif key == arcade.key.RIGHT:
+            self.player_position += PLAYER_SPEED
+
+        # Check for winner
         self.check_winner()
-
-    def tug_right(self):
-        self.player_position += 1
-        self.opponent_move()
-        self.check_winner()
-
-    def opponent_move(self):
-        opponent_move = random.choice([-1, 1])
-        self.opponent_position += opponent_move
 
     def check_winner(self):
-        if self.player_position <= 0 or self.opponent_position >= 6:
-            self.display_tug_of_war()
-            messagebox.showinfo("Tug of War", "Congratulations! You won!")
-            self.master.destroy()
-        elif self.opponent_position <= 0 or self.player_position >= 6:
-            self.display_tug_of_war()
-            messagebox.showinfo("Tug of War", "Oh no! You lost. Better luck next time.")
-            self.master.destroy()
-
-    def quit_game(self):
-        self.master.destroy()
-
-    def update_game(self):
-        # Periodically check whether the canvas should be updated
-        self.display_tug_of_war()
-
-        pyrow.pyrow.find()
-        ergs = pyrow.pyrow(erg)
-        # get input from the rowing machine
-        data = pyrow.pyrow.get_monitor(forceplot=False)
-        if data[power] > 100:
-            self.tug_left()
-        else:
-            self.tug_right()
-        if not (
-            self.player_position <= 0
-            or self.opponent_position >= 6
-            or self.opponent_position <= 0
-            or self.player_position >= 6
-        ):
-            self.master.after(100, self.update_game)
+        if self.player_position <= SCREEN_WIDTH // 2 - ROPE_WIDTH // 2:
+            arcade.draw_text("Congratulations! You won!", SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2,
+                             arcade.color.GREEN, 20, width=300, align="center")
+            arcade.finish_render()
+            arcade.pause(2)
+            arcade.close_window()
+        elif self.player_position >= SCREEN_WIDTH // 2 + ROPE_WIDTH // 2:
+            arcade.draw_text("Oh no! You lost. Better luck next time.", SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2,
+                             arcade.color.RED, 20, width=400, align="center")
+            arcade.finish_render()
+            arcade.pause(2)
+            arcade.close_window()
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    game = TugOfWarGame(root)
-    root.mainloop()
+    window = TugOfWarGame(SCREEN_WIDTH, SCREEN_HEIGHT, "Tug of War Game")
+    arcade.run()
